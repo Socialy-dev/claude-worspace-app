@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Type-safe API exposed to renderer
 const api = {
@@ -43,6 +43,11 @@ const api = {
       ipcRenderer.on('agents:event', listener)
       return () => ipcRenderer.removeListener('agents:event', listener)
     },
+  },
+
+  // File utilities (Electron 32+ — File.path is deprecated)
+  files: {
+    getPathForFile: (file: File) => webUtils.getPathForFile(file),
   },
 
   // Projects

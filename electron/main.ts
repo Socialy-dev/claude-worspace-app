@@ -50,6 +50,11 @@ function createWindow() {
     mainWindow = null
   })
 
+  // Prevent Electron from navigating when files are dropped on the window
+  mainWindow.webContents.on('will-navigate', (e) => {
+    e.preventDefault()
+  })
+
   // Open external links in browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
