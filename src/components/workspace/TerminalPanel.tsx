@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { useTerminal } from '../../hooks/useTerminal'
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
 export default function TerminalPanel({ id, cwd }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const attachedRef = useRef(false)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // Stable callback — prevents useTerminal's attach from being recreated every render
   const onExit = useCallback((code: number) => {
@@ -35,10 +36,27 @@ export default function TerminalPanel({ id, cwd }: Props) {
     return () => observer.disconnect()
   }, [fit])
 
+  // Drag and drop visual feedback only — let xterm handle the actual drop
+  // so Claude Code CLI receives the file via bracketed paste natively
+  const handleDragOver = useCallback(() => {
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback(() => {
+    setIsDragOver(false)
+  }, [])
+
   return (
     <div
       ref={containerRef}
-      className="h-full w-full bg-[#0f0f23]"
+      className={`h-full w-full bg-[#0f0f23] relative ${isDragOver ? 'ring-2 ring-inset ring-claude-accent/50' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     />
   )
 }

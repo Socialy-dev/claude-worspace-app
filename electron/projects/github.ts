@@ -3,6 +3,7 @@ import os from 'os'
 
 // Electron doesn't inherit the user's shell PATH — inject common locations
 const EXTRA_PATHS = [
+  `${os.homedir()}/bin`,
   '/opt/homebrew/bin',
   '/usr/local/bin',
   `${os.homedir()}/.nvm/versions/node/current/bin`,
@@ -14,7 +15,7 @@ const EXEC_OPTS = { encoding: 'utf-8' as const, timeout: 15000, env: EXEC_ENV }
 
 // Resolve gh binary path (no shell execution)
 function findGh(): string {
-  for (const dir of ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']) {
+  for (const dir of [`${os.homedir()}/bin`, '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']) {
     const p = `${dir}/gh`
     try { if (require('fs').existsSync(p)) return p } catch {}
   }
