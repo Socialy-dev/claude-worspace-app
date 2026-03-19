@@ -16,6 +16,11 @@ export interface Tab {
   isSplit: boolean
 }
 
+export interface MorningCheckProject {
+  name: string
+  cwd: string
+}
+
 export interface WorkspaceState {
   tabs: Tab[]
   activeTab: string
@@ -24,6 +29,7 @@ export interface WorkspaceState {
 
   // Init
   init: (cwd: string, label: string) => void
+  initMorningCheck: (projects: MorningCheckProject[]) => void
 
   // Tab actions
   addTab: (cwd: string, label: string) => void
@@ -84,6 +90,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({
       tabs: [tab],
       activeTab: tab.id,
+      maximizedInstance: null,
+    })
+  },
+
+  initMorningCheck: (projects) => {
+    // Kill all existing pty processes
+    const s = get()
+    for (const tab of s.tabs) {
+      for (const inst of tab.instances) {
+        window.electronAPI.terminal.kill(inst.id)
+      }
+    }
+
+    // Create one tab per project, each with a single instance
+    const tabs = projects.map((p) => makeTab(p.cwd, p.name))
+    if (tabs.length === 0) return
+
+    set({
+      tabs,
+      activeTab: tabs[0].id,
+      agentMonitorOpen: true,
       maximizedInstance: null,
     })
   },

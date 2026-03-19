@@ -33,7 +33,7 @@ export default function Workspace() {
 
   const {
     tabs, activeTab, agentMonitorOpen, maximizedInstance,
-    init, addTab, removeTab, setActiveTab, renameTab,
+    init, initMorningCheck, addTab, removeTab, setActiveTab, renameTab,
     addInstance, removeInstance, setActiveInstance,
     toggleSplit, toggleMaximize, toggleAgentMonitor,
   } = useWorkspaceStore()
@@ -42,11 +42,36 @@ export default function Workspace() {
 
   // Only initialize once per workspace load
   useEffect(() => {
-    if (id && !initDone.current) {
-      initDone.current = true
+    if (!id || initDone.current) return
+    initDone.current = true
+
+    // Check for morning check mode
+    window.electronAPI.morningCheck.getConfig().then(({ isMorningCheck, config }) => {
+      if (isMorningCheck && config && config.projects.length > 0) {
+        // Create tabs for all projects
+        const projects = config.projects.map((p) => ({
+          name: p.name,
+          cwd: p.path,
+        }))
+        initMorningCheck(projects)
+
+        // The runner's autoType waits for the PTY to be created (polls),
+        // so we can fire immediately — no fragile setTimeout needed.
+        const currentTabs = useWorkspaceStore.getState().tabs
+        for (const tab of currentTabs) {
+          const instanceId = tab.instances[0]?.id
+          if (!instanceId) continue
+          const project = config.projects.find((p) => p.name === tab.label)
+          const message = project?.message || config.defaultMessage
+          window.electronAPI.morningCheck.autoType(instanceId, message).catch(() => {})
+        }
+      } else {
+        init(cwd, name)
+      }
+    }).catch(() => {
       init(cwd, name)
-    }
-  }, [id, cwd, name, init])
+    })
+  }, [id, cwd, name, init, initMorningCheck])
 
   const currentTab = tabs.find((t) => t.id === activeTab)
 
@@ -229,9 +254,11 @@ export default function Workspace() {
                     : 'h-full relative'
                 }>
                   {tab.instances.map((inst) => {
-                    const isVisible = tab.isSplit
+                    const isInstanceVisible = tab.isSplit
                       ? (maximizedInstance ? inst.id === maximizedInstance : true)
                       : inst.id === tab.activeInstance
+                    // A terminal is truly visible only when both its tab AND instance are active
+                    const isVisible = isActiveTab && isInstanceVisible
 
                     return (
                       <div
@@ -242,7 +269,7 @@ export default function Workspace() {
                             : 'absolute inset-0'
                         }
                         style={{
-                          display: isVisible
+                          display: isInstanceVisible
                             ? (tab.isSplit ? 'flex' : 'block')
                             : 'none',
                         }}
@@ -280,7 +307,7 @@ export default function Workspace() {
 
                         {/* Terminal — always mounted, never unmounted */}
                         <div className={tab.isSplit ? 'flex-1 min-h-0' : 'h-full'}>
-                          <TerminalPanel id={inst.id} cwd={tab.cwd} />
+                          <TerminalPanel id={inst.id} cwd={tab.cwd} isVisible={isVisible} />
                         </div>
                       </div>
                     )

@@ -12,6 +12,16 @@ export default function Home() {
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [cloning, setCloning] = useState<string | null>(null)
 
+  // Morning check mode: skip Home, go straight to workspace
+  useEffect(() => {
+    window.electronAPI.morningCheck.getConfig().then(({ isMorningCheck }) => {
+      if (isMorningCheck) {
+        const id = `morning-check-${Date.now()}`
+        navigate(`/workspace/${id}?cwd=${encodeURIComponent('~')}&name=${encodeURIComponent('Morning Check')}`)
+      }
+    }).catch(() => {})
+  }, [navigate])
+
   useEffect(() => {
     window.electronAPI.store.getWorkspaces().then(setWorkspaces).catch(() => {})
   }, [])

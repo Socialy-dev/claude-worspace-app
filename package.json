@@ -5,6 +5,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
+    "dev:morning": "MORNING_CHECK=1 vite",
     "build": "vite build && electron-builder",
     "build:unpack": "vite build && electron-builder --dir",
     "preview": "vite preview",
